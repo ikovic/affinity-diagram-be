@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/andygrunwald/go-jira"
+	gojira "github.com/andygrunwald/go-jira"
+	jira "github.com/ikovic/affinity-diagram-be/jira"
 	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
 )
@@ -15,35 +17,35 @@ func index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
 }
 
-func main() {
+func loadEnv() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+}
+
+func getBoards(jiraClient *gojira.Client) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		options := gojira.BoardListOptions{BoardType: "scrum"}
+		boardList, _, _ := jiraClient.Board.GetAllBoards(&options)
+		bytes, _ := json.Marshal(boardList.Values)
+		w.Write(bytes)
+	}
+}
+
+func main() {
+	loadEnv()
 
 	jiraInstance := os.Getenv("JIRA_INSTANCE")
 	jiraUsername := os.Getenv("JIRA_USERNAME")
 	jiraPassword := os.Getenv("JIRA_PASSWORD")
 
-	jiraClient, err := jira.NewClient(nil, jiraInstance)
-	if err != nil {
-		panic(err)
-	}
-
-	res, err := jiraClient.Authentication.AcquireSessionCookie(jiraUsername, jiraPassword)
-	if err != nil || res == false {
-		fmt.Printf("Result: %v\n", res)
-		panic(err)
-	}
-
-	projectList, _, _ := jiraClient.Project.GetList()
-
-	for _, project := range *projectList {
-		fmt.Printf("Result: %v\n", project.Name)
-	}
+	jiraClient := jira.GetClient(jiraInstance, jiraUsername, jiraPassword)
 
 	router := httprouter.New()
 	router.GET("/", index)
+	router.GET("/boards", getBoards(jiraClient))
 
+	fmt.Println("Server listening at 8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
