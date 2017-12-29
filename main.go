@@ -14,6 +14,14 @@ import (
 	"github.com/rs/cors"
 )
 
+type SimpleIssue struct {
+	URL         string `json:"url,omitempty" structs:"url,omitempty"`
+	Key         string `json:"key,omitempty" structs:"key,omitempty"`
+	ID          string `json:"id,omitempty" structs:"id,omitempty"`
+	Summary     string `json:"summary,omitempty" structs:"summary,omitempty"`
+	Description string `json:"description,omitempty" structs:"description,omitempty"`
+}
+
 func index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	fmt.Fprint(w, "Welcome!\n")
 }
@@ -42,13 +50,20 @@ func getBacklogIssues(jiraClient *gojira.Client) func(w http.ResponseWriter, r *
 		query := fmt.Sprintf("/rest/agile/1.0/board/%s/backlog", boardID)
 		req, _ := jiraClient.NewRequest("GET", query, nil)
 
-		issues := new(gojira.IssuesInSprintResult)
-		_, err := jiraClient.Do(req, issues)
+		result := new(gojira.IssuesInSprintResult)
+		_, err := jiraClient.Do(req, result)
 		if err != nil {
 			panic(err)
 		}
 
-		bytes, _ := json.Marshal(issues)
+		simpleIssues := []SimpleIssue{}
+		for _, issue := range result.Issues {
+			simpleIssue := SimpleIssue{URL: issue.Self, Key: issue.Key, ID: issue.ID,
+				Summary: issue.Fields.Summary, Description: issue.Fields.Description}
+			simpleIssues = append(simpleIssues, simpleIssue)
+		}
+
+		bytes, _ := json.Marshal(simpleIssues)
 		w.Write(bytes)
 	}
 }
