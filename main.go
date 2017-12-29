@@ -15,11 +15,11 @@ import (
 )
 
 type SimpleIssue struct {
-	URL         string `json:"url,omitempty" structs:"url,omitempty"`
-	Key         string `json:"key,omitempty" structs:"key,omitempty"`
-	ID          string `json:"id,omitempty" structs:"id,omitempty"`
-	Summary     string `json:"summary,omitempty" structs:"summary,omitempty"`
-	Description string `json:"description,omitempty" structs:"description,omitempty"`
+	URL         string `json:"url" structs:"url"`
+	Key         string `json:"key" structs:"key"`
+	ID          string `json:"id" structs:"id"`
+	Summary     string `json:"summary" structs:"summary"`
+	Description string `json:"description" structs:"description"`
 }
 
 func index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
